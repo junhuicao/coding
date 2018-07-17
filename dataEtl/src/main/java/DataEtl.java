@@ -43,9 +43,9 @@ public class DataEtl {
         , TimeUnit.MILLISECONDS
         ,new ArrayBlockingQueue<Runnable>(Integer.parseInt(prop.getProperty("ThreadQueueSize"))));
 
-    Timer timer = new Timer();
+/*    Timer timer = new Timer();
     MyTimerTask timerTask = new MyTimerTask();
-    timer.scheduleAtFixedRate(timerTask,new Date(),Integer.parseInt(prop.getProperty("interval"))*1000);
+    timer.scheduleAtFixedRate(timerTask,new Date(),Integer.parseInt(prop.getProperty("interval"))*1000);*/
 
  /*   Util.upload(Util.Ftpconnect("/test","127.0.0.1",21,"ftp","ftp"),
         new File("D:\\TCLOUD.T_OGG2018-07-14"));*/
