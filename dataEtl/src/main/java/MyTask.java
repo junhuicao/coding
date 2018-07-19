@@ -6,6 +6,7 @@ import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
@@ -25,14 +26,16 @@ public class MyTask implements Runnable {
   private String sql;
   private String id;
   private String endValue;
+  private String handleDelims;
 
-  public MyTask(Properties prop,String db,String table,String sql,String id,String endValue){
+  public MyTask(Properties prop,String db,String table,String sql,String id,String endValue,String handleDelims){
     this.prop = prop;
     this.db = db;
     this.table = table;
     this.sql = sql;
     this.id = id;
     this.endValue = endValue;
+    this.handleDelims = handleDelims;
   }
 
 
@@ -49,6 +52,15 @@ public class MyTask implements Runnable {
     ResultSet resultSet = null;
     String updateSql = null;
     String filePath = null;
+    int rowCount = 0;
+
+    //这里的()表示保存匹配的结果,需要替换的特殊字符：
+    // 特别是下面的字符如果是字段值的一部分时，必须前缀一个反斜杠：反斜杠本身，换行符，回车，以及当前分隔符
+    String delimsRegex = "([\\\\\r\n\001])";
+    boolean isHandleDelims = false;
+    if(null != handleDelims && handleDelims.length()>0 && handleDelims.equals("1"))
+      isHandleDelims = true;
+    LOG.info("---> "+table+" is handle delims: "+isHandleDelims);
 
     try {
       connection = Util.getConnect(db);
@@ -57,7 +69,9 @@ public class MyTask implements Runnable {
       resultSet = ps.executeQuery();
 
       //Util.getColumnInfo(resultSet.getMetaData());
-      int columnCount = resultSet.getMetaData().getColumnCount();
+
+      ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+      int columnCount = resultSetMetaData.getColumnCount();
       StringBuffer buff = new StringBuffer();
       filePath = prop.getProperty("tmpFileDir")+table.replace("\"","").replace(".","_")
                                   +"_"+new SimpleDateFormat("yyyyMMdd").format(new Date())+Util.getSuffix(prop.getProperty("interval"));
@@ -72,7 +86,7 @@ public class MyTask implements Runnable {
             postfix = "\r\n";
           }
 
-          if( resultSet.getMetaData().getColumnTypeName(i).equals("BLOB"))
+          if( resultSetMetaData.getColumnTypeName(i).equals("BLOB"))
           {
             if(resultSet.getBlob(i) != null && resultSet.getBlob(i).length() > 0)
               buff.append(Util.byte2hex(resultSet.getBlob(i).getBinaryStream())+postfix);
@@ -83,7 +97,14 @@ public class MyTask implements Runnable {
           else {
             if (resultSet.getString(i) != null)
             {
-              buff.append(resultSet.getString(i) + postfix);
+              if(isHandleDelims)
+              {
+                buff.append(resultSet.getString(i).replaceAll(delimsRegex,"\\\\$1") + postfix);
+              }
+              else
+              {
+                buff.append(resultSet.getString(i) + postfix);
+              }
             }
             else
             {
@@ -93,9 +114,20 @@ public class MyTask implements Runnable {
 
         }
 
+        rowCount++;
+
+        if(rowCount % Integer.parseInt(prop.getProperty("buffRowCnt")) == 0)
+        {
+          bufferedOutputStream.write(buff.toString().getBytes());
+          buff.setLength(0);
+        }
+
+      }
+
+      if(buff.length() > 0)
+      {
         bufferedOutputStream.write(buff.toString().getBytes());
         buff.setLength(0);
-
       }
 
       resultSet.close();
@@ -103,8 +135,8 @@ public class MyTask implements Runnable {
       connection.close();
       bufferedOutputStream.close();
       outputStream.close();
-
-      LOG.info("Begining upload file to ftp.");
+      LOG.info(table+" this read row count: "+rowCount);
+      LOG.info(table+" Begining upload file to ftp.");
       Util.upload(Util.Ftpconnect(prop.getProperty("ftpPath")
           ,prop.getProperty("ftpAddr")
           ,21
@@ -119,7 +151,7 @@ public class MyTask implements Runnable {
       if(null != endValue) updateSql = updateSql + ", fieldBeginValue = '"+endValue+"'";
       updateSql = updateSql + " where id = "+id;
 
-      LOG.info("update etlTable sql: "+updateSql);
+      LOG.info(table+" update etlTable sql: "+updateSql);
 
       conn = Util.getConnect(prop.getProperty("etlConn"));
       st = conn.createStatement();
@@ -149,9 +181,9 @@ public class MyTask implements Runnable {
         st.close();
         conn.close();
       } catch (Exception e1) {
-        LOG.error("etl task handle exeption error !!! ",e1);
+        LOG.error(table + " etl task handle exeption error !!! ",e1);
       }
-      LOG.info("task: " + db+"."+table + " 执行完毕。");
+      LOG.info("task: " + db+"."+table + " 执行完毕[error]。");
 
     } finally {
       if(resultSet != null)

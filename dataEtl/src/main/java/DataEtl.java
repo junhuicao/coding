@@ -97,7 +97,7 @@ public class DataEtl {
               +"' and fieldBeginValue < '"+resultSet.getString("fieldEndValue") +"'";
           executor.execute(new MyTask(prop,resultSet.getString("dbname")
               ,resultSet.getString("tablespace")+"."+resultSet.getString("table")
-              ,sql,resultSet.getString("id"),null));
+              ,sql,resultSet.getString("id"),null,resultSet.getString("handleDelims")));
 
           threadPoolStatus();
         }
@@ -106,7 +106,7 @@ public class DataEtl {
           sql = sql + " and fieldInitValue < '"+resultSet.getString("fieldInitValue")+"'";
           executor.execute(new MyTask(prop,resultSet.getString("dbname")
               ,resultSet.getString("tablespace")+"."+resultSet.getString("table")
-              ,sql,resultSet.getString("id"),null));
+              ,sql,resultSet.getString("id"),null,resultSet.getString("handleDelims")));
 
           threadPoolStatus();
         }
@@ -119,7 +119,7 @@ public class DataEtl {
 
             executor.execute(new MyTask(prop,resultSet.getString("dbname")
                 ,resultSet.getString("tablespace")+"."+resultSet.getString("table")
-                ,sql,resultSet.getString("id"),null));
+                ,sql,resultSet.getString("id"),null,resultSet.getString("handleDelims")));
 
             threadPoolStatus();
           }
@@ -152,7 +152,7 @@ public class DataEtl {
 
               executor.execute(new MyTask(prop,resultSet.getString("dbname")
                   ,resultSet.getString("tablespace")+"."+resultSet.getString("table")
-                  ,sql,resultSet.getString("id"),null));
+                  ,sql,resultSet.getString("id"),null,resultSet.getString("handleDelims")));
 
               threadPoolStatus();
             }
@@ -213,9 +213,9 @@ public class DataEtl {
 
               if("num".equals(resultSet.getString("updateFieldType")))
               {
-                sql = sql + " and " + resultSet.getString("updateField") + " >= '"
+                sql = sql + " and " + resultSet.getString("updateField") + " >= "
                     + resultSet.getLong("fieldBeginValue")
-                    + "' and " + resultSet.getString("updateField") + " < " + endValue ;
+                    + " and " + resultSet.getString("updateField") + " < " + endValue ;
               }
               else if("time".equals(resultSet.getString("updateFieldType")))
               {
@@ -240,7 +240,7 @@ public class DataEtl {
 
               executor.execute(new MyTask(prop,resultSet.getString("dbname")
                   ,resultSet.getString("tablespace")+"."+resultSet.getString("table")
-                  ,sql,resultSet.getString("id"),endValue));
+                  ,sql,resultSet.getString("id"),endValue,resultSet.getString("handleDelims")));
 
               threadPoolStatus();
 

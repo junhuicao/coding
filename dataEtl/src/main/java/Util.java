@@ -456,6 +456,7 @@ public class Util {
    */
   public static void upload(FTPClient ftp,File file) {
 
+
     try {
       if (file.isDirectory()) {
         ftp.makeDirectory(file.getName());
@@ -475,6 +476,7 @@ public class Util {
         }
       } else {
         File file2 = new File(file.getPath());
+        LOG.info("Ftp---->  upload from "+file.getAbsolutePath() + " .fileName: "+ file.getName());
         FileInputStream input = new FileInputStream(file2);
         ftp.storeFile(file2.getName(), input);
         input.close();
