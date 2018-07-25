@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import oracle.sql.BLOB;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
@@ -69,6 +70,43 @@ public class Util {
   }
     LOG.info(jsonStr);
   return jsonStr;
+  }
+
+  /**
+   * @param fullFile 配置文件路径
+   * @return Properties对象
+   */
+  public static Properties loadPropertiesFile(String fullFile) {
+    if (null == fullFile || fullFile.equals("")){
+      throw new IllegalArgumentException("Properties file path can not be null" + fullFile);
+    }
+    InputStream inputStream = null;
+    Properties p =null;
+    try {
+      inputStream = new FileInputStream(new File(fullFile));
+      p = new Properties();
+      p.load(inputStream);
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        if (null != inputStream){
+          inputStream.close();
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
+    return p;
+  }
+
+
+  public static String getDateStr()
+  {
+    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+    String dt = df.format(new Date());// new Date()为获取当前系统时间
+    return dt;
   }
 
   public JSONObject jsonStr2jsonObject(String jsonStr) {
@@ -135,6 +173,27 @@ public class Util {
       }
     }
     return rs;
+  }
+
+  public  String updateTaskInfo(HashMap<String,String> taskInfoMap,String taskId)
+  {
+    String insertSql = "insert into "+DataEtl.prop.getProperty("etldb")+"."+DataEtl.prop.getProperty("etlTaskInfoTable")
+        +" (etlid,taskid,taskName,rowCnt,begintime,endtime,status,remark,beginValue,endValue,updatetime) "
+        + "values("
+        + taskInfoMap.get("id")
+        + ",'" +taskId+"'"
+        + ",'" +taskInfoMap.get("taskName")+"'"
+        + ",'" +taskInfoMap.get("rowCnt")+"'"
+        + ",'" +taskInfoMap.get("beginTime")+"'"
+        + ",'" +taskInfoMap.get("endTime")+"'"
+        + ",'" +taskInfoMap.get("status")+"'"
+        + ",'" +taskInfoMap.get("remark")+"'"
+        + ",'" +taskInfoMap.get("beginValue")+"'"
+        + ",'" +taskInfoMap.get("endValue")+"'"
+        + ",'" +getDateStr()+"'"
+        + ")";
+    LOG.info("Insert etlTaskInfo Sql: "+insertSql);
+    return update(DataEtl.prop.getProperty("etlConn"),insertSql);
   }
 
   public  String update(String db,String sql) {
@@ -454,8 +513,9 @@ public class Util {
    * @param file 上传的文件或文件夹
    * @throws Exception
    */
-  public static void upload(FTPClient ftp,File file) {
+  public static boolean upload(FTPClient ftp,File file) {
 
+    boolean rs = false;
 
     try {
       if (file.isDirectory()) {
@@ -481,10 +541,12 @@ public class Util {
         ftp.storeFile(file2.getName(), input);
         input.close();
       }
+      rs = true;
     }
     catch (Exception e){
       LOG.error("Ftp uplod file error !!!",e);
     }
+    return  rs;
   }
 
   public static String getSuffix(String interval)

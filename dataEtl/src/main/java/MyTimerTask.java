@@ -10,6 +10,6 @@ public class MyTimerTask extends TimerTask {
   @Override
   public void run() {
     LOG.info("MyTimerTask start is "+new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(this.scheduledExecutionTime()));
-    DataEtl.scheduler("inc");
+    DataEtl.scheduler();
   }
 }
