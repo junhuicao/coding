@@ -1,6 +1,5 @@
 import java.sql.Blob;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -33,6 +32,15 @@ public class BlobHandleTask implements Runnable {
 
   @Override
   public void run() {
+
+    if(etlTaskInfoMap.get(taskId).get("status").equals("fail"))
+    {
+      LOG.error("该任务的状态为失败，本批次"+rowBatchRs.getBatchId()+"进程取消！！！");
+      Util.taskStatusCheck(etlTaskInfoMap,taskId,null,rowBatchRs.getBatchId()
+          +"","2","放弃生产");
+      return;
+    }
+
     StringBuffer strBuff = new StringBuffer();
 
     for (Object[] row : rowBatchRs.getRowBatchRs()) {
@@ -72,17 +80,8 @@ public class BlobHandleTask implements Runnable {
       if(etlTaskInfoMap.get(taskId).get("status").equals("fail"))
       {
         LOG.error("该任务的状态为失败，本批次"+rowBatchRs.getBatchId()+"进程取消！！！");
-        etlTaskInfoMap.get(taskId+"batch").put(rowBatchRs.getBatchId()+"","2");
-        etlTaskInfoMap.get(taskId).put("remark",etlTaskInfoMap.get(taskId).get("remark")
-            +"\r\n批次"+rowBatchRs.getBatchId()+":放弃入队");
-        if(!etlTaskInfoMap.get(taskId+"_batch").containsValue("0"))
-        {
-          LOG.error("该任务的状态为失败，并且放弃入队后所有批次已经运行完成，移除该任务！！！");
-          new Util().updateTaskInfo(etlTaskInfoMap.get(taskId),taskId);
-          etlTaskInfoMap.remove(taskId);
-          etlTaskInfoMap.remove(rowBatchRs.getTaskId()+"_batch");
-        }
-
+        Util.taskStatusCheck(etlTaskInfoMap,taskId,null,rowBatchRs.getBatchId()
+            +"","2","放弃入队");
         return;
       }
       rsBatchQueue.put(rowBatchRs);
@@ -102,17 +101,8 @@ public class BlobHandleTask implements Runnable {
       }
     } catch (Exception e) {
       LOG.error("etl: "+taskId+" 批量行结果集第"+rowBatchRs.getBatchId()+"批添加队列失败!!!", e);
-      etlTaskInfoMap.get(taskId).put("status","fail");
-      etlTaskInfoMap.get(taskId+"_batch").put(rowBatchRs.getBatchId()+"","2");
-      etlTaskInfoMap.get(taskId).put("remark",etlTaskInfoMap.get(taskId).get("remark")
-          +"\r\n批次"+rowBatchRs.getBatchId()+":入队失败");
-      if(!etlTaskInfoMap.get(taskId+"_batch").containsValue("0"))
-      {
-        LOG.error("该任务的状态为失败，并且所有批次已经运行完成，移除该任务！！！");
-        new Util().updateTaskInfo(etlTaskInfoMap.get(taskId),taskId);
-        etlTaskInfoMap.remove(taskId);
-        etlTaskInfoMap.remove(rowBatchRs.getTaskId()+"_batch");
-      }
+      Util.taskStatusCheck(etlTaskInfoMap,taskId,"fail"
+          ,rowBatchRs.getBatchId()+"","2","入队失败");
     }
   }
 }

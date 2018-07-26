@@ -69,20 +69,10 @@ public class ToFtpConsumer implements Runnable{
       {
         LOG.error("任务："+rowBatchResult.getTaskId()+",批次："+rowBatchResult.getBatchId()
             +" table: "+rowBatchResult.getTableSpace()+"_"+rowBatchResult.getTable()+"状态为失败，放弃写入临时文件");
-        etlTaskInfoMap.get(rowBatchResult.getTaskId())
-            .put("remark",etlTaskInfoMap.get(rowBatchResult.getTaskId())
-                .get("remark")+"\r\n批次"+rowBatchResult.getBatchId()+":放弃写入临时文件");
-        etlTaskInfoMap.get(rowBatchResult.getTaskId()+"batch").put(rowBatchResult.getBatchId()+"","2");
-        if(!etlTaskInfoMap.get(rowBatchResult.getTaskId()+"batch").containsValue("0"))
-        {
-          LOG.error("任务："+rowBatchResult.getTaskId()+",批次："+rowBatchResult.getBatchId()
-              +" table: "+rowBatchResult.getTableSpace()+"_"+rowBatchResult.getTable()+"状态为失败,并且个批次状态均已完成，移除该任务");
 
-          new Util().updateTaskInfo(etlTaskInfoMap.get(rowBatchResult.getTaskId()),rowBatchResult.getTaskId());
-          etlTaskInfoMap.remove(rowBatchResult.getTaskId());
-          etlTaskInfoMap.remove(rowBatchResult.getTaskId()+"_batch");
-          return;
-        }
+        Util.taskStatusCheck(etlTaskInfoMap,rowBatchResult.getTaskId(),null
+            ,rowBatchResult.getBatchId()+"","2","放弃写入临时文件");
+        return;
       }
       String filePath = dirPath+File.separator+fileName;
       outputStream = new FileOutputStream(filePath);
@@ -96,100 +86,48 @@ public class ToFtpConsumer implements Runnable{
       {
         LOG.error("任务："+rowBatchResult.getTaskId()+",批次："+rowBatchResult.getBatchId()
             +" table: "+rowBatchResult.getTableSpace()+"_"+rowBatchResult.getTable()+"状态为失败，放弃上传Ftp");
-        etlTaskInfoMap.get(rowBatchResult.getTaskId())
-            .put("remark",etlTaskInfoMap.get(rowBatchResult.getTaskId())
-                .get("remark")+"\r\n批次"+rowBatchResult.getBatchId()+":放弃上传Ftp");
-        etlTaskInfoMap.get(rowBatchResult.getTaskId()+"batch").put(rowBatchResult.getBatchId()+"","2");
-        if(!etlTaskInfoMap.get(rowBatchResult.getTaskId()+"batch").containsValue("0"))
-        {
-          LOG.error("任务："+rowBatchResult.getTaskId()+",批次："+rowBatchResult.getBatchId()
-              +" table: "+rowBatchResult.getTableSpace()+"_"+rowBatchResult.getTable()+"状态为失败,并且放弃上传Ftp后各个批次状态均已完成，移除该任务");
 
-          new Util().updateTaskInfo(etlTaskInfoMap.get(rowBatchResult.getTaskId()),rowBatchResult.getTaskId());
-          etlTaskInfoMap.remove(rowBatchResult.getTaskId());
-          etlTaskInfoMap.remove(rowBatchResult.getTaskId()+"_batch");
-          return;
-        }
+        Util.taskStatusCheck(etlTaskInfoMap,rowBatchResult.getTaskId(),null
+        ,rowBatchResult.getBatchId()+"","2","放弃上传Ftp");
+
+        return;
       }
 
       if(!toFtp(filePath,dayStr))
       {
         LOG.error("消费队列上传Ftp失败！！！");
-        etlTaskInfoMap.get(rowBatchResult.getTaskId()).put("status", "fail");
-        etlTaskInfoMap.get(rowBatchResult.getTaskId())
-            .put("remark", etlTaskInfoMap.get(rowBatchResult.getTaskId())
-                .get("remark") + "\r\n批次" + rowBatchResult.getBatchId() + ":消费队列上传Ftp失败");
-
-        etlTaskInfoMap.get(rowBatchResult.getTaskId() + "_batch")
-            .put(rowBatchResult.getBatchId() + "", "2");
-        if (!etlTaskInfoMap.get(rowBatchResult.getTaskId() + "_batch").containsValue("0")) {
-          LOG.error("任务：" + rowBatchResult.getTaskId() + ",批次：" + rowBatchResult.getBatchId()
-              + " table: " + rowBatchResult.getTableSpace() + "_" + rowBatchResult.getTable()
-              + "状态为失败,并且上传Ftp失败后各个批次状态均已完成，移除该任务");
-
-          new Util().updateTaskInfo(etlTaskInfoMap.get(rowBatchResult.getTaskId()),
-              rowBatchResult.getTaskId());
-          etlTaskInfoMap.remove(rowBatchResult.getTaskId());
-          etlTaskInfoMap.remove(rowBatchResult.getTaskId()+"_batch");
-        }
-
+        Util.taskStatusCheck(etlTaskInfoMap,rowBatchResult.getTaskId(),"fail"
+        ,rowBatchResult.getBatchId()+"","2","上传Ftp失败");
       }
       else
       {
         LOG.info("消费队列上传Ftp成功！！！");
-        etlTaskInfoMap.get(rowBatchResult.getTaskId())
-            .put("remark", etlTaskInfoMap.get(rowBatchResult.getTaskId())
-                .get("remark") + "\r\n批次" + rowBatchResult.getBatchId() + ":消费队列上传Ftp成功");
 
-        etlTaskInfoMap.get(rowBatchResult.getTaskId() + "_batch")
-            .put(rowBatchResult.getBatchId() + "", "1");
-        if (!etlTaskInfoMap.get(rowBatchResult.getTaskId() + "_batch").containsValue("0")) {
-          LOG.error("任务：" + rowBatchResult.getTaskId() + ",批次：" + rowBatchResult.getBatchId()
-              + " table: " + rowBatchResult.getTableSpace() + "_" + rowBatchResult.getTable()
-              + "状态为成功,并且各个批次状态均已完成，移除该任务");
+        String endValue = etlTaskInfoMap.get(rowBatchResult.getTaskId()).get("endValue");
+        Util.taskStatusCheck(etlTaskInfoMap,rowBatchResult.getTaskId(),null
+            ,rowBatchResult.getBatchId()+"","1","上传Ftp成功");
 
-          new Util().updateTaskInfo(etlTaskInfoMap.get(rowBatchResult.getTaskId()),
-              rowBatchResult.getTaskId());
-          String endValue = etlTaskInfoMap.get(rowBatchResult.getTaskId()).get("endValue");
-          etlTaskInfoMap.remove(rowBatchResult.getTaskId());
-          etlTaskInfoMap.remove(rowBatchResult.getTaskId()+"_batch");
+        String dt = Util.getDateStr();
 
-          String dt = Util.getDateStr();
-
-          String updateSql = "update " + prop.getProperty("etldb") + "." + prop.getProperty("etltable")
-              + " set updateTime = '" + dt + "'";
-          if (null != endValue && endValue.length()>0) {
-            updateSql = updateSql + ", fieldBeginValue = '" + endValue + "'";
-          }
-          updateSql = updateSql + " where id = " + rowBatchResult.getId();
-
-          LOG.info(" update etlTable sql: " + updateSql);
-
-          new Util().update(prop.getProperty("etlConn"),updateSql);
-          LOG.info("task: " + rowBatchResult.getTaskId() + "table: " + rowBatchResult.getTableSpace()
-              + "." + rowBatchResult.getTable() + " 执行完毕。");
+        String updateSql = "update " + prop.getProperty("etldb") + "." + prop.getProperty("etltable")
+            + " set updateTime = '" + dt + "'";
+        if (null != endValue && endValue.length()>0) {
+          updateSql = updateSql + ", fieldBeginValue = '" + endValue + "'";
         }
+        updateSql = updateSql + " where id = " + rowBatchResult.getId();
+
+        LOG.info(" update etlTable sql: " + updateSql);
+
+        new Util().update(prop.getProperty("etlConn"),updateSql);
+        LOG.info("task: " + rowBatchResult.getTaskId() + "table: " + rowBatchResult.getTableSpace()
+            + "." + rowBatchResult.getTable() + " 执行完毕。");
+
       }
 
     } catch (Exception e) {
       LOG.error("消费队列失败！！！", e);
-      etlTaskInfoMap.get(rowBatchResult.getTaskId()).put("status", "fail");
-      etlTaskInfoMap.get(rowBatchResult.getTaskId())
-          .put("remark", etlTaskInfoMap.get(rowBatchResult.getTaskId())
-              .get("remark") + "\r\n批次" + rowBatchResult.getBatchId() + ":消费队列写入临时文件失败");
-
-      etlTaskInfoMap.get(rowBatchResult.getTaskId() + "_batch")
-          .put(rowBatchResult.getBatchId() + "", "2");
-      if (!etlTaskInfoMap.get(rowBatchResult.getTaskId() + "_batch").containsValue("0")) {
-        LOG.error("任务：" + rowBatchResult.getTaskId() + ",批次：" + rowBatchResult.getBatchId()
-            + " table: " + rowBatchResult.getTableSpace() + "_" + rowBatchResult.getTable()
-            + "状态为失败,并且个批次状态均已完成，移除该任务");
-
-        new Util().updateTaskInfo(etlTaskInfoMap.get(rowBatchResult.getTaskId()),
-            rowBatchResult.getTaskId());
-        etlTaskInfoMap.remove(rowBatchResult.getTaskId());
-        etlTaskInfoMap.remove(rowBatchResult.getTaskId()+"_batch");
-      }
+      Util.taskStatusCheck(etlTaskInfoMap,rowBatchResult.getTaskId(),"fail"
+                ,rowBatchResult.getBatchId()+"","2","写入临时文件失败");
     }
     finally {
       if(null != bufferedOutputStream)

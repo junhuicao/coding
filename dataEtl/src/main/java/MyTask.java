@@ -1,14 +1,8 @@
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,7 +12,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import javafx.scene.input.DataFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,8 +54,6 @@ public class MyTask implements Runnable {
 
       Connection connection = null;
       PreparedStatement ps = null;
-      Connection conn = null;
-      Statement st = null;
       ResultSet resultSet = null;
       String updateSql = null;
       String filePath = null;
@@ -207,6 +198,7 @@ public class MyTask implements Runnable {
         }
       } catch (Exception e) {
         etlTaskInfoMap.get(taskId).put("status","fail");
+        etlTaskInfoMap.get(taskId).put("rowCnt",rowCount+"");
         if(etlTaskInfoMap.containsKey(taskId+"_"+"batch"))
         {
           LOG.error("任务："+taskId+"_"+db+"_"+table+"出错，但已经提交了部分batch！！！",e);
@@ -217,7 +209,6 @@ public class MyTask implements Runnable {
           new Util().updateTaskInfo(etlTaskInfoMap.get(taskId),taskId);
           etlTaskInfoMap.remove(taskId);
         }
-
       } finally {
         if (resultSet != null) {
           try {
@@ -240,27 +231,11 @@ public class MyTask implements Runnable {
             e.printStackTrace();
           }
         }
-        if (st != null) {
-          try {
-            st.close();
-          } catch (SQLException e) {
-            e.printStackTrace();
-          }
-        }
-        if (conn != null) {
-          try {
-            conn.close();
-          } catch (SQLException e) {
-            e.printStackTrace();
-          }
-        }
-
       }
     }
   }
 
-  public void setRowBatchandPutQueue(StringBuffer buff,int batchId)
-  {
+  public void setRowBatchandPutQueue(StringBuffer buff,int batchId) throws InterruptedException {
     RowBatchResult rowBatchResult = new RowBatchResult();
     rowBatchResult.setId(etlInfoMap.get("id"));
     rowBatchResult.setTaskId(taskId);
@@ -270,23 +245,22 @@ public class MyTask implements Runnable {
     rowBatchResult.setTableSpace(etlInfoMap.get("tablespace"));
     rowBatchResult.setTable(etlInfoMap.get("table"));
     rowBatchResult.setRowBatchResult2Str(buff.delete(buff.length()-2,buff.length()));
-    try {
-      rsBatchQueue.put(rowBatchResult);
-      LOG.info("etl: "+taskId+" 批量行结果集第"+rowBatchResult.getBatchId()+"批添加队列成功。");
-      if(etlTaskInfoMap.get(taskId).containsKey("addBatchCnt"))
-      {
-        etlTaskInfoMap.get(taskId).put(
-            "addBatchCnt",
-            ""+(Integer.parseInt(etlTaskInfoMap.get(taskId).get("addBatchCnt"))+1)
-            );
-      }
-      else
-      {
-        etlTaskInfoMap.get(taskId).put("addBatchCnt",1+"");
-      }
-    } catch (InterruptedException e) {
-      etlTaskInfoMap.get(taskId).put("status","fail");
-      LOG.error("etl: "+taskId+" 批量行结果集第"+rowBatchResult.getBatchId()+"批添加队列失败！！！", e);
+
+    rsBatchQueue.put(rowBatchResult);
+
+    LOG.info("etl: "+taskId+" 批量行结果集第"+rowBatchResult.getBatchId()+"批添加队列成功。");
+    etlTaskInfoMap.get(taskId).put("remark",etlTaskInfoMap.get(taskId).get("remark")
+        +"\r\n批次"+batchId+": 添加队列成功");
+    if(etlTaskInfoMap.get(taskId).containsKey("addBatchCnt"))
+    {
+      etlTaskInfoMap.get(taskId).put(
+          "addBatchCnt",
+          ""+(Integer.parseInt(etlTaskInfoMap.get(taskId).get("addBatchCnt"))+1)
+          );
+    }
+    else
+    {
+      etlTaskInfoMap.get(taskId).put("addBatchCnt",1+"");
     }
   }
 

@@ -1,5 +1,4 @@
 import com.alibaba.druid.pool.DruidDataSource;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -23,16 +22,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import oracle.sql.BLOB;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.net.ftp.FtpClient;
 
 public class Util {
 
@@ -623,6 +620,27 @@ public class Util {
 
 
 }
+
+  public static void taskStatusCheck(ConcurrentHashMap<String,HashMap<String,String>> etlTaskInfoMap
+                              ,String taskId,String taskStatus,String batchId,String batchStatus,String remark)
+  {
+
+    if(null != taskStatus) {
+      etlTaskInfoMap.get(taskId).put("status", taskStatus);
+    }
+    etlTaskInfoMap.get(taskId+"_batch").put(batchId,batchStatus);
+    etlTaskInfoMap.get(taskId).put("remark",etlTaskInfoMap.get(taskId).get("remark")
+        +"\r\n批次"+batchId+": "+remark);
+    if(etlTaskInfoMap.get(taskId).containsKey("rowCnt") && !etlTaskInfoMap.get(taskId+"_batch").containsValue("0"))
+    {
+      LOG.info("taskId: "+taskId+", batchId: "+batchId+", taskName: "
+          +etlTaskInfoMap.get(taskId).get("taskName")+". 所有批次已经运行完成，移除该任务！！！");
+      etlTaskInfoMap.get(taskId).put("endTime",Util.getDateStr());
+      new Util().updateTaskInfo(etlTaskInfoMap.get(taskId),taskId);
+      etlTaskInfoMap.remove(taskId);
+      etlTaskInfoMap.remove(taskId+"_batch");
+    }
+  }
 
 }
 
