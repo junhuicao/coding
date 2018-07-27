@@ -28,6 +28,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import oracle.sql.BLOB;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
+import org.apache.orc.BinaryColumnStatistics;
+import org.apache.orc.OrcFile;
+import org.apache.orc.Reader;
+import org.apache.orc.RecordReader;
+import org.apache.orc.TypeDescription;
+import org.apache.orc.Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -640,6 +651,55 @@ public class Util {
       etlTaskInfoMap.remove(taskId);
       etlTaskInfoMap.remove(taskId+"_batch");
     }
+  }
+
+  /**
+   * 用java Api读写orc
+   * @throws IOException
+   */
+  public static void writeOrc() throws IOException {
+    Configuration conf = new Configuration();
+    TypeDescription schema = TypeDescription.fromString("struct<x:int,y:int,z:binary>");
+    Writer writer = OrcFile.createWriter(new Path("D:\\my-file.orc"),
+        OrcFile.writerOptions(conf)
+            .setSchema(schema));
+
+    VectorizedRowBatch batch = schema.createRowBatch();
+    LongColumnVector x = (LongColumnVector) batch.cols[0];
+    LongColumnVector y = (LongColumnVector) batch.cols[1];
+    BytesColumnVector z = (BytesColumnVector) batch.cols[2];
+    for(int r=0; r < 2; ++r) {
+      int row = batch.size++;
+      x.vector[row] = r;
+      y.vector[row] = r * 3;
+      //z.vector[row] = "1433233".getBytes();
+      z.setVal(row,("14\t\r\n\00133233"+r).getBytes());
+      // If the batch is full, write it out and start over.
+      if (batch.size == batch.getMaxSize()) {
+        writer.addRowBatch(batch);
+        batch.reset();
+      }
+    }
+    if (batch.size != 0) {
+      writer.addRowBatch(batch);
+      batch.reset();
+    }
+    writer.close();
+
+    Reader reader = OrcFile.createReader(new Path("D:\\my-file.orc"),
+        OrcFile.readerOptions(conf));
+    RecordReader rows = reader.rows();
+    VectorizedRowBatch batch1 = reader.getSchema().createRowBatch();
+    while (rows.nextBatch(batch1)) {
+      for(int r=0; r < batch1.size; ++r) {
+        for(int i=0; i< batch1.numCols;i++)
+        {
+          System.out.println(((LongColumnVector)batch1.cols[1]).vector.toString());
+        }
+      }
+    }
+    rows.close();
+
   }
 
 }

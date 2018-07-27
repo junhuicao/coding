@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -55,6 +56,11 @@ public class DataEtl {
     MyTimerTask timerTask = new MyTimerTask();
     timer.scheduleAtFixedRate(timerTask,new Date(),Integer.parseInt(prop.getProperty("interval"))*1000);
 
+/*    try {
+      Util.writeOrc();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }*/
   }
 
   public static void threadPoolStatus(){

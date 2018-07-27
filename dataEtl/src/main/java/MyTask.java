@@ -294,9 +294,27 @@ public class MyTask implements Runnable {
       sql = etlInfoMap.get("updateSql");
     }
 
-    if ("fill" == etlInfoMap.get("etlType")) {
-      sql = sql + " and fieldBeginValue >= '" + etlInfoMap.get("fieldBeginValue")
-          + "' and fieldBeginValue < '" + etlInfoMap.get("fieldEndValue") + "'";
+    if (etlInfoMap.get("etlType").equals("fill")) {
+
+      String beginValue = null;
+      String endValue  = null;
+      if ("num".equals(etlInfoMap.get("updateFieldType"))) {
+        beginValue = Long.parseLong(etlInfoMap.get("fieldBeginValue"))+"";
+        endValue = Long.parseLong(etlInfoMap.get("fieldEndValue"))+"";
+      } else if ("time".equals(etlInfoMap.get("updateFieldType"))) {
+        beginValue = " to_date('" + etlInfoMap.get("fieldBeginValue") + "','YYYY-MM-DD HH24:MI:SS')";
+        endValue = " to_date('" + etlInfoMap.get("fieldEndValue") + "','YYYY-MM-DD HH24:MI:SS')";
+      } else if ("timestamp".equals(etlInfoMap.get("updateFieldType"))) {
+        beginValue = " to_timestamp('" + etlInfoMap.get("fieldBeginValue") + "','YYYY-MM-DD HH24:MI:SS')";
+        endValue = " to_timestamp('" + etlInfoMap.get("fieldEndValue") + "','YYYY-MM-DD HH24:MI:SS')";
+      } else {
+        beginValue = "'" + etlInfoMap.get("fieldBeginValue") + "'";
+        endValue = "'" + etlInfoMap.get("fieldEndValue") + "'";
+      }
+
+      sql = sql + " and "+etlInfoMap.get("updateField")+" >= " + beginValue
+          + " and "+etlInfoMap.get("updateField")+" < " + endValue;
+      LOG.info("Fill Sql ----> "+sql);
     } else if ("his" == etlInfoMap.get("etlType")) {
       sql = sql + " and fieldInitValue < '" + etlInfoMap.get("fieldInitValue") + "'";
     } else {
