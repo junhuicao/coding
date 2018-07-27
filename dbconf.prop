@@ -1,0 +1,38 @@
+{
+  "ogg": {
+    "driver": "oracle.jdbc.OracleDriver",
+    "url": "jdbc:oracle:thin:@(DESCRIPTION = (ADDRESS_LIST =(ADDRESS = (PROTOCOL = TCP)(HOST = 127.0.0.1)(PORT = 1521)))(CONNECT_DATA = (SERVER = DEDICATED)(SERVICE_NAME =orcl)))",
+    "usr":"ogg",
+    "pwd":"ogg",
+    "initialSize":2,
+    "minIdle":2,
+    "maxActive":20,
+    "maxWait":60000,
+    "timeBetweenEvictionRunsMillis":60000,
+    "minEvictableIdleTimeMillis":300000,
+    "validationQuery":"SELECT 1 from dual",
+    "testWhileIdle":"true",
+    "testOnBorrow":"false",
+    "testOnReturn":"false",
+    "poolPreparedStatements":"false",
+    "maxPoolPreparedStatementPerConnectionSize":"200"
+  },
+    "mysql": {
+      "driver": "oracle.jdbc.OracleDriver",
+      "url": "jdbc:mysql://127.0.0.1:3306/pd_list",
+      "usr":"root",
+      "pwd":"123123",
+      "initialSize":2,
+      "minIdle":2,
+      "maxActive":20,
+      "maxWait":60000,
+      "timeBetweenEvictionRunsMillis":60000,
+      "minEvictableIdleTimeMillis":300000,
+      "validationQuery":"SELECT 1 from dual",
+      "testWhileIdle":"true",
+      "testOnBorrow":"false",
+      "testOnReturn":"false",
+      "poolPreparedStatements":"false",
+      "maxPoolPreparedStatementPerConnectionSize":"200"
+    }
+}
