@@ -62,7 +62,8 @@ public class MyTask implements Runnable {
       //这里的()表示保存匹配的结果,需要替换的特殊字符：
       // 特别是下面的字符如果是字段值的一部分时，必须前缀一个反斜杠：反斜杠本身，换行符，回车，以及当前分隔符
       String colDelimiter = prop.getProperty("colDelimiter");
-      String delimsRegex = "([\\\\\r\n" + colDelimiter + "])";
+      //String delimsRegex = "([\\\\\r\n" + colDelimiter + "])";
+      String delimsRegex = "([\r\n" + colDelimiter + "])";
       boolean isHandleDelims = false;
       if (null != etlInfoMap.get("handleDelims") && etlInfoMap.get("handleDelims").equals("1")) {
         isHandleDelims = true;
@@ -164,7 +165,8 @@ public class MyTask implements Runnable {
 
               if (resultSet.getString(i) != null) {
                 if (isHandleDelims) {
-                  buff.append(resultSet.getString(i).replaceAll(delimsRegex, "\\\\$1") + postfix);
+                  //buff.append(resultSet.getString(i).replaceAll(delimsRegex, "\\\\$1") + postfix);
+                  buff.append(resultSet.getString(i).replaceAll(delimsRegex, "") + postfix);
                 } else {
                   buff.append(resultSet.getString(i) + postfix);
                 }
@@ -195,6 +197,12 @@ public class MyTask implements Runnable {
           connection.close();
           LOG.info(table + " this read row count: " + rowCount);
 
+          if(!etlTaskInfoMap.containsKey(taskId+"_"+"batch"))
+          {
+            LOG.info("任务："+taskId+"_"+db+"_"+table+" 完成，还未提交batch，移除此任务！！！");
+            new Util().updateTaskInfo(etlTaskInfoMap.get(taskId),taskId);
+            etlTaskInfoMap.remove(taskId);
+          }
         }
       } catch (Exception e) {
         etlTaskInfoMap.get(taskId).put("status","fail");

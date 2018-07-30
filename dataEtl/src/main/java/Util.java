@@ -503,8 +503,15 @@ public class Util {
         LOG.error("ftp connect failed !!!");
         return null;
       }
-      ftp.makeDirectory(path);
-      ftp.changeWorkingDirectory(path);
+      LOG.info("--------------------->>>> "+path);
+      String [] dirs = path.split("/");
+      for(String dirss:dirs)
+      {
+        ftp.makeDirectory(dirss);
+        ftp.changeWorkingDirectory(dirss);
+      }
+
+
       result = true;
 
     }catch (Exception e){

@@ -64,7 +64,8 @@ public class BlobHandleTask implements Runnable {
         } else {
           if (null != row[i]) {
             if (handleDelimiters) {
-              strBuff.append(row[i].toString().replaceAll(delimsRegex, "\\\\$1") + postfix);
+              //strBuff.append(row[i].toString().replaceAll(delimsRegex, "\\\\$1") + postfix);
+              strBuff.append(row[i].toString().replaceAll(delimsRegex, "") + postfix);
             } else {
               strBuff.append(row[i].toString() + postfix);
             }

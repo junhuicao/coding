@@ -163,7 +163,7 @@ public class ToFtpConsumer implements Runnable{
   {
     File file = new File(filePath);
     LOG.info(" Begining upload "+file.getName()+" file to ftp.");
-    return Util.upload(Util.Ftpconnect(prop.getProperty("ftpPath")+File.separator+dayStr
+    return Util.upload(Util.Ftpconnect(prop.getProperty("ftpPath")+"/"+dayStr
         , prop.getProperty("ftpAddr")
         , 21
         , prop.getProperty("ftpUser")
